@@ -1,0 +1,14 @@
+{
+  "name": "yoga-kula-webhook",
+  "version": "1.0.0",
+  "description": "Webhook para Dialogflow CX com GPT-4 e dados do Yoga Kula",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "node-fetch": "^3.3.2"
+  }
+}

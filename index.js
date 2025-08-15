@@ -23,15 +23,52 @@ Pergunta do cliente:
 }
 
 app.post("/webhook", async (req, res) => {
-  console.log("📩 Chegou requisição do CX:", JSON.stringify(req.body, null, 2));
+  const tag = req.body.fulfillmentInfo?.tag || null;
 
-  return res.json({
-    fulfillment_response: {
-      messages: [{ text: { text: ["✅ Conexão CX ↔ Railway funcionando!"] } }]
+  if (tag === "GPT_FALLBACK") {
+    const perguntaCliente = req.body.text || req.body.sessionInfo?.parameters?.ultima_mensagem || "Pergunta não fornecida";
+
+    try {
+      // Chamada à API GPT-4
+      const gptResp = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "gpt-4",
+          messages: [
+            { role: "system", content: "Tu és um assistente útil e simpático." },
+            { role: "user", content: criarPrompt(perguntaCliente) }
+          ],
+          max_tokens: 500,
+          temperature: 0.7
+        })
+      });
+
+      const data = await gptResp.json();
+      const resposta = data.choices?.[0]?.message?.content || "Não consegui encontrar a resposta.";
+
+      return res.json({
+        fulfillment_response: {
+          messages: [
+            { text: { text: [resposta] } }
+          ]
+        }
+      });
+
+    } catch (error) {
+      console.error(error);
+      return res.json({
+        fulfillment_response: {
+          messages: [
+            { text: { text: ["Ocorreu um erro ao tentar responder."] } }
+          ]
+        }
+      });
     }
-  });
-});
-
+  }
 
   // Se não for a tag GPT_FALLBACK
   return res.json({
@@ -41,4 +78,6 @@ app.post("/webhook", async (req, res) => {
       ]
     }
   });
+});
+
 app.listen(8080, () => console.log("Servidor webhook rodando na porta 8080"));
